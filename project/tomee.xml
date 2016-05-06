@@ -1,0 +1,10 @@
+<tomee>
+  <Resource id="PostgreSQL Database" type="DataSource">
+        JdbcDriver org.postgresql.Driver
+        JdbcUrl jdbc:postgresql://10.11.1.201/music
+        UserName post
+        Password post
+        JtaManaged true
+        DefaultAutoCommit false
+  </Resource>
+</tomee>
