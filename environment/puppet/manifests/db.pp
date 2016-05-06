@@ -1,8 +1,11 @@
 class { 'postgresql::server':
-	postgres_password          => 'asd',
+  ip_mask_allow_all_users    => '0.0.0.0/0',
+  listen_addresses           => '*',
+  postgres_password          => 'postgres',
+
 }
 
-postgresql::server::db { 'mydatabasename':
-  user     => 'mydatabaseuser',
-  password => postgresql_password('mydatabaseuser', 'mypassword'),
+postgresql::server::db { 'music':
+  user     => 'post',
+  password => postgresql_password('post', 'post'),
 }
