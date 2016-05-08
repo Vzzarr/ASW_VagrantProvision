@@ -145,7 +145,8 @@ $ sudo netstat -tulpn | grep postgres
 * L'avvio di Tomee è manuale, è necessario posizionarsi in /tomee/bin ed eseguire ./startup.sh. Si vuole quindi automatizzare anche questo processo.
 * Migliorare i nomi dei file.
 * Il download di Java8 è lento. Si vuole ridurre la quantità dei file da scaricare, limitandosi alle componenti essenziali. Eventualmente valutare la modifica dell'applicazione, individuando le istruzioni che richiedono l'utilizzo di Java8 (Java 7 dovrebbe andar bene).
-* Non funziona il link tra la tabella dei contenuti e  le varie sezioni di questo file
+* Non funziona il link tra la tabella dei contenuti e  le varie sezioni di questo file.
+* Creare un file .gitignore che impedisca il caricamento delle configurazioni delle VM su Git.
 
 
 
