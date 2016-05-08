@@ -1,21 +1,21 @@
 # Progetto di Architetture dei sistemi software
 #### Tabella dei contenuti
 
-1. [Descrizione del progetto - Cosa è in grado di fare?](#l'-obiettivo)
-2. [L'applicazione](#l'-applicazione)
-    * [Descrizione](#l'-applicazione)
-    * [Tecnologie utilizzate](#l'-applicazione)
-3. [Il provisioning](#il-provisioning)
+1. [Descrizione del progetto - Cosa è in grado di fare?](#obiettivi)
+2. [Applicazione](#applicazione)
+    * [Descrizione](#applicazione)
+    * [Tecnologie utilizzate](#applicazione)
+3. [Provisioning](#provisioning)
     * [Apache TomEE](#apache-tomee)
     * [Postgres](#postgres)
       * [Setup](#setup)
-      * [Creazione di un database](#creazione-database)
+      * [Creazione di un database](#creazione-di-un-database)
 4. [Installazione](#installazione)
 5. [Comandi utili](#comandi-utili)
 6. [Todo](#todo)
 7. [Realizzatori](#realizzatori)
 
-### L'obiettivo
+### Obiettivi
 
 Il progetto è stato realizzato nell'ambito del corso di Architetture dei Sistemi Software. La prima parte del progetto ha previsto tre obiettivi principali: 
 
@@ -25,15 +25,16 @@ Il progetto è stato realizzato nell'ambito del corso di Architetture dei Sistem
  
 Attraverso l'utilizzo di [Vagrant][vagrant] è stato quindi realizzato un ambiente  costituito da due macchine virtuali.  La prima delle due macchine virtuali svolge la funzione di server e su di essa è installato [Apache TomEE][tomee], mentre sulla seconda è installato [Postgres][postgres].
 
-### L'applicazione
+### Applicazione
 
 L'applicazione, seguendo le specifiche, è minimale. Nella realizzazione è stato seguito il pattern model-view-controller e si tratta essenzialmente di un gestore di cantanti e canzoni. Fornisce possibilità di inserimento e visualizzazione di entrambe le entità coinvolte. Il codice dell'applicazione è in Java ed è stato fatto uso di diversi framework e tecnologie:
 * [JPA] - Per la gestione della persistenza
 * [JSF] - Per l'interfaccia utente lato server
 * [JSP] - Per la programmazione web
-> Per la sua esecuzione è richiesta l'installazine di JAVA 8
 
-### Il provisioning
+N.B.: Per la sua esecuzione è richiesta l'installazione di JAVA 8
+
+### Provisioning
 Per la parte di provisioning si è fatto uso di [Puppet][puppet]. L'obiettivo principale del progetto è stato infatti quello di lanciare in esecuzione automatica l'intero ambiente attraverso un unico comando. 
 Gli obiettivi del provisioning hanno previsto l'installazione delle seguenti componenti:
 - sulla macchina "www":
@@ -93,7 +94,7 @@ class { 'postgresql::server':
   ```
  Ciò che avviene a seguito di queste istruzioni è la modifica dei file postgres.conf e pg_hba.conf.
  
-##### Creazione database
+##### Creazione di un database
   
  Dopo aver specificato questi parametri è possibile verificare  le operazioni attraverso il comando:
  ```
@@ -130,7 +131,10 @@ A questo punto per utilizzare l'applicazione è sufficiente connettersi alla pag
 $ localhost:2212/ProgettoASW
 ```
 ### Comandi utili
-Nelle operazioni di testing possono risultare utili i seguenti comandi
+Nelle operazioni di testing possono risultare utili i seguenti comandi:
+* In generale
+    * nella modifica di file di testo attraverso vim spesso ci si trova a modificare file di tipo read-only, è utile quindi il comando: " :w! sudo tee % "
+    
 * Sulla macchina www
 ```sh
 $ ps aux | grep tomee
@@ -142,12 +146,14 @@ $ ps aux | grep tomee
 $ psql -h 127.0.0.1 -p 5432 -U postgres -W
 $ sudo netstat -tulpn | grep postgres
 ```
+
 ### ToDo
 * L'avvio di Tomee è manuale, è necessario posizionarsi in /tomee/bin ed eseguire ./startup.sh. Si vuole quindi automatizzare anche questo processo.
 * Migliorare i nomi dei file.
 * Il download di Java8 è lento. Si vuole ridurre la quantità dei file da scaricare, limitandosi alle componenti essenziali. Eventualmente valutare la modifica dell'applicazione, individuando le istruzioni che richiedono l'utilizzo di Java8 (Java 7 dovrebbe andar bene).
-* Non funziona il link tra la tabella dei contenuti e  le varie sezioni di questo file.
+* Non funziona il link tra la tabella dei contenuti e  le varie sezioni di questo file. [risolto]
 * Creare un file .gitignore che impedisca il caricamento delle configurazioni delle VM su Git.
+* Migliorare interfaccia applicazione, magari usando Bootstrap
 
 
 
