@@ -33,9 +33,10 @@ class tomee {
     command => "/usr/bin/sudo /bin/cp /home/vagrant/project/tomee.xml /opt/tomee-1.7.4/conf/",
 } ->
 
- exec { "startup tomee":
-    command => "/usr/bin/sudo /opt/tomee-1.7.4/bin/startup.sh",
+exec { "start tomcat":
+    command => "/usr/bin/sudo /bin/sh /opt/tomee-1.7.4/bin/startup.sh"
 }
+
  service { "tomee" :
     provider => "init",
     ensure => running,
