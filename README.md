@@ -7,6 +7,7 @@
     * [Tecnologie utilizzate](#applicazione)
 3. [Provisioning](#provisioning)
     * [Apache TomEE](#apache-tomee)
+      * [Avvio Automatico](#avvio-automatico)
     * [Postgres](#postgres)
       * [Setup](#setup)
       * [Creazione di un database](#creazione-di-un-database)
@@ -79,6 +80,9 @@ Per facilità d'uso il driver di postgres, l'applicazione e il file tomee.xml (n
     command => "/usr/bin/sudo /bin/cp /home/vagrant/project/tomee.xml /opt/tomee-1.7.4/conf/",
 } ->
 ```
+##### Avvio automatico
+tomcat si avvia in automatico dopo l'installazione. È stato però necessario far in modo che ripartisse in automatico ad ogni reboot della macchina. (spiega modifiche effettuate ai file e i comandi dati)
+
 
 #### Postgres
 
