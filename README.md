@@ -81,9 +81,30 @@ Per facilità d'uso il driver di postgres, l'applicazione e il file tomee.xml (n
 } ->
 ```
 ##### Avvio automatico
-tomcat si avvia in automatico dopo l'installazione. È stato però necessario far in modo che ripartisse in automatico ad ogni reboot della macchina. (spiega modifiche effettuate ai file e i comandi dati)
+Tomcat si avvia in automatico dopo l'installazione. È stato però necessario far in modo che ripartisse in automatico ad ogni reboot della macchina. Per fare questo sono andato ad aggiungere il file tomcat nella cartella /etc/init.d. Il contenuto del file tomcat è:
+```
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
+start() {
+sudo sh /opt/tomee-1.7.4/bin/startup.sh
+}
 
+stop() {
+sudo sh /opt/tomee-1.7.4/bin/shutdown.sh
+}
+
+case $1 in 
+  start) $1;;
+  restart) stop; start;;
+  *) echo "Run as $0 <start|stop|restart>"; exit 1;;
+esac
+
+```
+Inoltre è necessario eseguire i seguenti comandi dal terminale:
+```sh
+chmod 755 /etc/init.d/tomcat
+update-rc.d tomcat defaults
+```
 #### Postgres
 
 ##### Setup
