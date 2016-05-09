@@ -35,7 +35,19 @@ class tomee {
 
 exec { "start tomcat":
     command => "/usr/bin/sudo /bin/sh /opt/tomee-1.7.4/bin/startup.sh"
-}
+} ->
+
+exec { "1 tomee start script":
+    command => "/usr/bin/sudo /bin/cp /home/vagrant/project/tomcat /etc/init.d",
+} ->
+
+exec { "2 tomee start script":
+    command => "/usr/bin/sudo chmod 755 /etc/init.d/tomcat",
+} ->
+
+exec { "3 tomee start script":
+    command => "/usr/bin/sudo update-rc.d tomcat defaults",
+} 
 
  service { "tomee" :
     provider => "init",

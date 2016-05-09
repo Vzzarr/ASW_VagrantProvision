@@ -1,0 +1,15 @@
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+start() {
+sudo sh /opt/tomee-1.7.4/bin/startup.sh
+}
+
+stop() {
+sudo sh /opt/tomee-1.7.4/bin/shutdown.sh
+}
+
+case $1 in 
+  start) $1;;
+  restart) stop; start;;
+  *) echo "Run as $0 <start|stop|restart>"; exit 1;;
+esac
