@@ -7,6 +7,7 @@
     * [Tecnologie utilizzate](#applicazione)
 3. [Provisioning](#provisioning)
     * [Apache TomEE](#apache-tomee)
+      * [Il ruolo della cartella condivisa](#cartella-condivisa)
       * [Avvio Automatico](#avvio-automatico)
     * [Postgres](#postgres)
       * [Setup](#setup)
@@ -14,7 +15,8 @@
 4. [Installazione](#installazione)
 5. [Comandi utili](#comandi-utili)
 6. [Todo](#todo)
-7. [Realizzatori](#realizzatori)
+7. [Bug e problemi noti](#bug-e-problemi-noti)
+8. [Realizzatori](#realizzatori)
 
 ### Obiettivi
 
@@ -39,11 +41,10 @@ N.B.: Per la sua esecuzione è richiesta l'installazione di JAVA 8
 Per la parte di provisioning si è fatto uso di [Puppet][puppet]. L'obiettivo principale del progetto è stato infatti quello di lanciare in esecuzione automatica l'intero ambiente attraverso un unico comando. 
 Gli obiettivi del provisioning hanno previsto l'installazione delle seguenti componenti:
 - sulla macchina "www":
-1. Apache-tomee-1.7.4-webprofile
-2. Java 8
-3. Il driver postgresql-9.4.1208.jre6.jar
+   - Apache-tomee-1.7.4-webprofile
+   - Java 8
 - sulla macchina "db":
-1. Postgres
+   - Postgres
 
    
 Nel Vagrant file sono quindi state specificate le condizioni di provisioning:
@@ -54,7 +55,7 @@ config.vm.provision :puppet do |puppet|
         puppet.manifest_file = "site.pp"
         puppet.module_path = "puppet/modules"
 ```
-All'interno della cartella environment è stata quindi definita la seguente struttura :
+All'interno della cartella **environment** è stata quindi definita la seguente struttura :
 
 ```
 +-- Vagrantfile
@@ -69,17 +70,41 @@ All'interno della cartella environment è stata quindi definita la seguente stru
 |                +-- _manifest
 |                       +-- init.pp
 ```
-Si sono quindi utilizzati moduli già disponibili su PuppetForge per l'installazione di Java e Postgres, mentre per TomEE non si è fatto uso di nessun modulo predefinito.
+Si sono quindi utilizzati moduli già disponibili su PuppetForge per l'installazione di Postgres, mentre per Java e TomEE non si è fatto uso di nessun modulo predefinito, ma si è scelto di procedere con la loro realizzazione (sfruttando comunque materiale disponibile in rete).
 Si è preferito procedere con l'installazione dei moduli direttamente dal Vagrantfile: una scelta progettuale dettata principalmente da esigenze di testing. Per esempio nel file init.pp di Java è richiesto l'uso di apt, reso disponibile da:
 ```sh
 config.vm.provision :shell do |shell|
     shell.inline = "mkdir -p /etc/puppet/modules;
                     puppet module install puppetlabs/apt"
 ```
+Un procedimento analogo è stato seguito per l'installazione del modulo puppet di postgres.
+```sh
+      config.vm.provision :shell do |shell|
+      shell.inline = "mkdir -p /etc/puppet/modules;
+                      puppet module install puppetlabs-postgresql"
+```      
+Nel file site.pp sono quindi state specificate le configurazioni per i due nodi. Per la macchina **www**  i moduli di Java e Tomee sono stati definiti nelle cartelle in /modules e quindi è bastato includerle. È stato necessario specificare una precedenza tra le classi, in modo tale da assicurare che l'installazione di Java avvenisse prima di quella di Tomcat.
+```sh
+node 'web' {
+    include java,tomee
+    Class['java'] -> Class['tomee']
+}
+```      
+Per la macchina **db** , avendo utilizzato un modulo già esistente è bastato specificare la configurazione desiderata. Tali specifiche hanno consentito la modifica ai file pg_hba.conf e postgres.conf, consentendo l'accesso dell'app al database.
+```sh
+ node 'db' {
+	class { 'postgresql::server':
+ 	   listen_addresses           => '*',
+       postgres_password          => 'postgres',}
 
+  	postgresql::server::db { [...]}
+
+  	postgresql::server::pg_hba_rule { [...]}	
+```
 #### Apache TomEE
+##### Cartella condivisa
 
-Per facilità d'uso il driver di postgres, l'applicazione e il file tomee.xml (necessario per le specifiche di comunicazione remota con il database) sono state inserite nella cartella condivisa project. Sono state quindi specificate, nel file tomee.pp, le operazioni necessarie allo spostamento nei file nelle corrette cartelle:
+Per facilità d'uso il driver di postgres, l'applicazione e il file tomee.xml (necessario per le specifiche di comunicazione remota con il database) sono state inserite nella cartella condivisa **project**. Sono state quindi specificate, nel file tomee.pp, le operazioni necessarie allo spostamento nei file nelle corrette cartelle:
 ```puppet
  exec { "driver-postgres":
     command => "/usr/bin/sudo /bin/cp  /home/vagrant/project/postgresql-9.4.1208.jre6.jar /opt/tomee-1.7.4/lib/",
@@ -93,9 +118,9 @@ Per facilità d'uso il driver di postgres, l'applicazione e il file tomee.xml (n
     command => "/usr/bin/sudo /bin/cp /home/vagrant/project/tomee.xml /opt/tomee-1.7.4/conf/",
 } ->
 ```
-
+Un'alternativa a questa scelta può essere quella di andare a definire un template per il file tomee.xml, effettuare il download automatico del driver e, dopo aver caricato il file war dell'applicazione su Github e aver installato Git, effettuare il download in tomee/webapps.
 ##### Avvio automatico
-Tomcat si avvia in automatico dopo l'installazione. È stato però necessario fare in modo che ripartisse in automatico al boot della macchina. Per fare questo è stato opportuno aggiungere un file tomcat nella cartella /etc/init.d. Il contenuto del file tomcat è:
+Tomcat si avvia in automatico dopo l'installazione. È stato però necessario fare in modo che ripartisse in automatico ad ogni boot della macchina. Per fare questo è stato opportuno aggiungere un file tomcat nella cartella /etc/init.d. Il contenuto del file tomcat è:
 ```sh
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -114,24 +139,48 @@ case $1 in
 esac
 
 ```
-Inoltre è necessario eseguire i seguenti comandi dal terminale al fine di modificare il permesso e aggiungere automaticamente il corretto symlink
+Inoltre è necessario eseguire i seguenti comandi dal terminale al fine di modificare il permesso e aggiungere automaticamente il corretto symlink.
 
 
 ```sh
 chmod 755 /etc/init.d/tomcat
 update-rc.d tomcat defaults
 ```
+
+I comandi che consentono la collocazione del file in /etc/init.d e l'esecuzione dei comandi chmod e update sono stati inseriti nel file init.pp di tomee:
+```sh
+exec { "1 tomee start script":
+    command => "/usr/bin/sudo /bin/cp /home/vagrant/project/tomcat /etc/init.d",
+} ->
+
+exec { "2 tomee start script":
+    command => "/usr/bin/sudo chmod 755 /etc/init.d/tomcat",
+} ->
+
+exec { "3 tomee start script":
+    command => "/usr/bin/sudo update-rc.d tomcat defaults",
+} 
+```
 #### Postgres
 
 ##### Setup
 
-Alla configurazione base di postgres, nel file db.pp, sono state aggiunte alcune specifiche per rendere possibile la connessione con la macchina "www". In questa configurazione Postgres non impone vincoli sugli indirizzi d'ascolto, nè su quelli che possono richiedere una connessione.
+Alla configurazione base di postgres, nel file setup.pp, sono state aggiunte alcune specifiche per rendere possibile la connessione con la macchina "www". In questa configurazione Postgres non impone vincoli sugli indirizzi d'ascolto, consentendo la connessione a **10.11.1.100/32**.
 
 ```puppet
-class { 'postgresql::server':
-  ip_mask_allow_all_users    => '0.0.0.0/0',
-  listen_addresses           => '*',
-  postgres_password          => 'postgres',}
+	class { 'postgresql::server':
+ 	   listen_addresses           => '*',
+       postgres_password          => 'postgres',}
+
+  	postgresql::server::db { [...}
+
+  	postgresql::server::pg_hba_rule { 'allow app to access database':
+  		description => "Open up PostgreSQL for access from 10.11.1.100/32",
+  		type        => 'host',
+  		database    => 'all',
+  		user        => 'all',
+  		address     => '10.11.1.100/32',
+  		auth_method => 'md5',
   ```
  Ciò che avviene a seguito di queste istruzioni è la modifica dei file postgres.conf e pg_hba.conf.
  
@@ -168,14 +217,14 @@ e dopo essersi posizionati nella cartella environment dare il comando:
 $ vagrant up
 ```
 Questa operazione può richiedere diversi minuti.
-A questo punto per utilizzare l'applicazione è sufficiente connettersi alla pagina
+A questo punto per utilizzare l'applicazione è sufficiente connettersi alla pagina:
 ```sh
 $ localhost:2212/ProgettoASW
 ```
 ### Comandi utili
 Nelle operazioni di testing possono risultare utili i seguenti comandi:
 * In generale
-    * nella modifica di file di testo attraverso vim spesso ci si trova a modificare file di tipo read-only, è utile quindi il comando: " :w! sudo tee % "
+    * nella modifica di file di testo mediante vim spesso ci si trova a modificare file di tipo read-only, è utile quindi il comando: " **:w! sudo tee %** "
     
 * Sulla macchina www
 ```sh
@@ -192,13 +241,15 @@ $ sudo netstat -tulpn | grep postgres
 ### ToDo
 * L'avvio di Tomee è manuale, è necessario posizionarsi in /tomee/bin ed eseguire ./startup.sh. Si vuole quindi automatizzare anche questo processo. [Risolto]
 * Tomee si deve avviare al boot della macchina. [Risolto]
-* La cartella files di Java serve?
-* Migliorare i nomi dei file.
-* Il download di Java8 è lento. Si vuole ridurre la quantità dei file da scaricare, limitandosi alle componenti essenziali. Eventualmente valutare la modifica dell'applicazione, individuando le istruzioni che richiedono l'utilizzo di Java8 (Java 7 dovrebbe andar bene).
+* Migliorare i nomi dei file. [Risolto]
+*   ~~Il download di Java8 è lento. Si vuole  ridurre la quantità dei file da scaricare, limitandosi alle componenti essenziali. Eventualmente valutare la modifica dell'applicazione, individuando le istruzioni che richiedono l'utilizzo di Java8 (Java 7 dovrebbe andar bene).~~ 
 * Non funziona il link tra la tabella dei contenuti e  le varie sezioni di questo file. [Risolto]
 * Creare un file .gitignore che impedisca il caricamento delle configurazioni delle VM su Git. [Risolto]
-* Migliorare interfaccia applicazione, magari usando Bootstrap
+*  ~~Migliorare interfaccia applicazione, magari usando Bootstrap~~
 
+### Bug e problemi noti
+
+*  Dovendo configurare diverse VM con diverse configurazioni, sarebbe opportuno far uso di [Hiera][hiera].
 
 
 ### Realizzatori
@@ -211,7 +262,6 @@ $ sudo netstat -tulpn | grep postgres
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
 
 
-
    [vagrant]: <https://www.vagrantup.com>
    [tomee]: <http://tomee.apache.org/index.html>
    [postgres]: <http://www.postgresql.org>
@@ -219,6 +269,7 @@ $ sudo netstat -tulpn | grep postgres
    [JSF]: <https://it.wikipedia.org/wiki/Java_Server_Faces>
    [JSP]: <https://it.wikipedia.org/wiki/JavaServer_Pages>
    [puppet]: <https://puppet.com>
+   [hiera]:<https://docs.puppet.com/hiera/3.1/>
 
 
 
